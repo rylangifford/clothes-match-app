@@ -28,8 +28,8 @@ def images_match(img1, img2, threshold=30):
     return similarity * 100 > threshold
 
 # Streamlit UI
-st.title("Clothing Match Checker")
-st.write("Upload two images of clothing to see if they match!")
+st.title("Fashion Design Clothing Matcher")
+st.write("Upload any two images of clothing to see if they're a match!")
 
 # Image upload widgets
 img1_file = st.file_uploader("Choose first clothing image", type=["jpg", "jpeg", "png"])
