@@ -1,54 +1,108 @@
 import streamlit as st
 import cv2
 import numpy as np
+from sklearn.cluster import KMeans
 from PIL import Image
 
-# Helper function to process images and determine if they match based on color similarity
-def images_match(img1, img2, threshold=30):
-    # Resize images to the same size for easier comparison
-    img1 = cv2.resize(img1, (100, 100))
-    img2 = cv2.resize(img2, (100, 100))
-    
-    # Convert images to the HSV color space for better color comparison
-    img1_hsv = cv2.cvtColor(img1, cv2.COLOR_BGR2HSV)
-    img2_hsv = cv2.cvtColor(img2, cv2.COLOR_BGR2HSV)
-    
-    # Calculate the color histogram for each image
-    hist_img1 = cv2.calcHist([img1_hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
-    hist_img2 = cv2.calcHist([img2_hsv], [0, 1], None, [50, 60], [0, 180, 0, 256])
-    
-    # Normalize histograms
-    cv2.normalize(hist_img1, hist_img1, 0, 1, cv2.NORM_MINMAX)
-    cv2.normalize(hist_img2, hist_img2, 0, 1, cv2.NORM_MINMAX)
-    
-    # Compare histograms using the correlation method
-    similarity = cv2.compareHist(hist_img1, hist_img2, cv2.HISTCMP_CORREL)
-    
-    # Return True if similarity is above a certain threshold
-    return similarity * 100 > threshold
+# Function to find the primary color in an image
+def get_dominant_color(image, k=1):
+    # Resize the image to reduce computation
+    image = cv2.resize(image, (50, 50))
+    # Reshape the image to a list of pixels
+    pixels = image.reshape(-1, 3)
+    # Use KMeans to find the dominant color
+    kmeans = KMeans(n_clusters=k)
+    kmeans.fit(pixels)
+    # Return the dominant color as the cluster center
+    dominant_color = kmeans.cluster_centers_[0]
+    return dominant_color
 
-# Streamlit UI
-st.title("Fashion Design Clothing Matcher")
-st.write("Upload any two images of clothing to see if they're a match!")
+# Map RGB color to common color names (simplified)
+def color_name(rgb_color):
+    r, g, b = rgb_color
+    if r > 150 and g < 100 and b < 100:
+        return "red"
+    elif r < 100 and g > 150 and b < 100:
+        return "green"
+    elif r < 100 and g < 100 and b > 150:
+        return "blue"
+    elif r > 150 and g > 150 and b < 100:
+        return "yellow"
+    elif r > 150 and g > 100 and b < 50:
+        return "orange"
+    elif r > 100 and g > 100 and b > 100:
+        return "gray"
+    elif r < 50 and g < 50 and b < 50:
+        return "black"
+    else:
+        return "unknown"
 
-# Image upload widgets
-img1_file = st.file_uploader("Choose first clothing image", type=["jpg", "jpeg", "png"])
-img2_file = st.file_uploader("Choose second clothing image", type=["jpg", "jpeg", "png"])
+# Define matching rules
+matching_rules = {
+    ("blue", "brown"): True,
+    ("blue", "gray"): True,
+    ("black", "white"): True,
+    ("white", "black"): True,
+    ("red", "black"): True,
+    ("gray", "black"): True,
+    ("green", "khaki"): True,
+    ("blue", "white"): True,
+    # Add more combinations as needed
+}
+
+def match_clothing(color1, color2):
+    # Check both combinations
+    return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1))
+
+# Streamlit App
+st.title("Clothing and Accessories Match Checker")
+st.write("Upload images of clothing and accessories to see if they match!")
+
+# Image upload widgets for clothing items
+img1_file = st.file_uploader("Choose first clothing image (e.g., shirt)", type=["jpg", "jpeg", "png"])
+img2_file = st.file_uploader("Choose second clothing image (e.g., pants)", type=["jpg", "jpeg", "png"])
+
+# Optional accessory upload
+accessory_files = st.file_uploader("Choose accessory images (e.g., shoes, belts)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 if img1_file and img2_file:
-    # Open the images with PIL, then convert to OpenCV format
+    # Process clothing images
     img1 = Image.open(img1_file)
     img2 = Image.open(img2_file)
     
     img1_cv = cv2.cvtColor(np.array(img1), cv2.COLOR_RGB2BGR)
     img2_cv = cv2.cvtColor(np.array(img2), cv2.COLOR_RGB2BGR)
-
-    # Display images side-by-side
-    st.image([img1, img2], caption=["First Image", "Second Image"], width=300)
-
-    # Check if the images match
-    if images_match(img1_cv, img2_cv):
+    
+    color1_rgb = get_dominant_color(img1_cv)
+    color2_rgb = get_dominant_color(img2_cv)
+    
+    color1_name = color_name(color1_rgb)
+    color2_name = color_name(color2_rgb)
+    
+    st.write(f"Detected Colors for Clothing: {color1_name} and {color2_name}")
+    
+    # Check clothing match
+    if match_clothing(color1_name, color2_name):
         st.write("### 👍 The clothes match!")
     else:
         st.write("### 👎 The clothes don't match.")
 
+    # Process accessory images if any
+    if accessory_files:
+        accessory_colors = []
+        
+        for acc_file in accessory_files:
+            acc_image = Image.open(acc_file)
+            acc_image_cv = cv2.cvtColor(np.array(acc_image), cv2.COLOR_RGB2BGR)
+            
+            acc_color_rgb = get_dominant_color(acc_image_cv)
+            acc_color_name = color_name(acc_color_rgb)
+            accessory_colors.append(acc_color_name)
+            
+            st.write(f"Detected Color for Accessory: {acc_color_name}")
+            
+            # Check if each accessory matches the clothing items
+            if match_clothing(acc_color_name, color1_name) and match_clothing(acc_color_name, color2_name):
+                st.write("### 👍 Accessory matches both clothing items!")
+            else:
+                st.write("### 👎 Accessory doesn't match both clothing items.")
