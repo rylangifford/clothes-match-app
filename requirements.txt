@@ -1,4 +1,5 @@
-streamlit as st
-cv2
-numpy as np
-
+streamlit
+opencv-python-headless
+numpy
+scikit-learn
+pillow
