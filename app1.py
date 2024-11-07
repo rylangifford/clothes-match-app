@@ -62,8 +62,9 @@ st.write("Upload images of clothing and accessories to see if they match!")
 img1_file = st.file_uploader("Choose first clothing image (e.g., shirt)", type=["jpg", "jpeg", "png"])
 img2_file = st.file_uploader("Choose second clothing image (e.g., pants)", type=["jpg", "jpeg", "png"])
 
-# Optional accessory upload
-accessory_files = st.file_uploader("Choose accessory images (e.g., shoes, belts)", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
+# Accessory upload section in an expandable container
+with st.expander("Upload Accessories (e.g., shoes, belts)"):
+    accessory_files = st.file_uploader("Choose accessory images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
 if img1_file and img2_file:
     # Process clothing images
