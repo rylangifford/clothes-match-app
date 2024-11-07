@@ -55,7 +55,7 @@ def match_clothing(color1, color2):
     return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1))
 
 # Streamlit App
-st.title("Clothing and Accessories Match Checker")
+st.title("Fashion Match Checker")
 st.write("Upload images of clothing and accessories to see if they match!")
 
 # Image upload widgets for clothing items
