@@ -4,16 +4,24 @@ import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
 
+# Apply yellow background style
+st.markdown(
+    """
+    <style>
+    body {
+        background-color: #FFFFE0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Function to find the primary color in an image
 def get_dominant_color(image, k=1):
-    # Resize the image to reduce computation
     image = cv2.resize(image, (50, 50))
-    # Reshape the image to a list of pixels
     pixels = image.reshape(-1, 3)
-    # Use KMeans to find the dominant color
     kmeans = KMeans(n_clusters=k)
     kmeans.fit(pixels)
-    # Return the dominant color as the cluster center
     dominant_color = kmeans.cluster_centers_[0]
     return dominant_color
 
@@ -47,15 +55,17 @@ matching_rules = {
     ("gray", "black"): True,
     ("green", "khaki"): True,
     ("blue", "white"): True,
-    # Add more combinations as needed
 }
 
 def match_clothing(color1, color2):
-    # Check both combinations
     return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1))
 
+# Initialize session state for favorites
+if "favorites" not in st.session_state:
+    st.session_state["favorites"] = []
+
 # Streamlit App
-st.title("Fashion Match Checker")
+st.title("Clothing and Accessories Match Checker")
 st.write("Upload images of clothing and accessories to see if they match!")
 
 # Image upload widgets for clothing items
@@ -85,8 +95,10 @@ if img1_file and img2_file:
     # Check clothing match
     if match_clothing(color1_name, color2_name):
         st.write("### 👍 The clothes match!")
+        is_match = True
     else:
         st.write("### 👎 The clothes don't match.")
+        is_match = False
 
     # Process accessory images if any
     if accessory_files:
@@ -102,8 +114,23 @@ if img1_file and img2_file:
             
             st.write(f"Detected Color for Accessory: {acc_color_name}")
             
-            # Check if each accessory matches the clothing items
             if match_clothing(acc_color_name, color1_name) and match_clothing(acc_color_name, color2_name):
                 st.write("### 👍 Accessory matches both clothing items!")
             else:
                 st.write("### 👎 Accessory doesn't match both clothing items.")
+
+    # Add current combination to favorites if matched
+    if is_match:
+        if st.button("Add to Favorites"):
+            favorite_combo = f"{color1_name} and {color2_name} (with accessories: {', '.join(accessory_colors)})"
+            st.session_state["favorites"].append(favorite_combo)
+            st.success("Outfit combo added to favorites!")
+
+# Favorite outfits dropdown
+with st.expander("Favorite Outfit Combinations"):
+    if st.session_state["favorites"]:
+        st.write("Your favorite outfit combinations:")
+        for favorite in st.session_state["favorites"]:
+            st.write(f"• {favorite}")
+    else:
+        st.write("No favorite outfits saved yet.")
