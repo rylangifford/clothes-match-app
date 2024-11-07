@@ -4,12 +4,12 @@ import numpy as np
 from sklearn.cluster import KMeans
 from PIL import Image
 
-# Apply yellow background style
+# Apply red background style
 st.markdown(
     """
     <style>
     body {
-        background-color: #FFFFE0;
+        background-color: #FF0000;
     }
     </style>
     """,
@@ -72,12 +72,7 @@ st.write("Upload images of clothing and accessories to see if they match!")
 img1_file = st.file_uploader("Choose first clothing image (e.g., shirt)", type=["jpg", "jpeg", "png"])
 img2_file = st.file_uploader("Choose second clothing image (e.g., pants)", type=["jpg", "jpeg", "png"])
 
-# Checkbox for adding to favorites, only shown if images are uploaded
-add_to_favorites_checkbox = None
-if img1_file and img2_file:
-    add_to_favorites_checkbox = st.checkbox("Add this combination to favorites")
-
-# Match button to trigger compatibility calculation
+# Display "Match" button and process images if button is clicked
 if img1_file and img2_file:
     if st.button("Match"):
         # Process clothing images
@@ -104,10 +99,16 @@ if img1_file and img2_file:
             st.write("### Compatibility: 0% (No match)")
             is_match = False
 
-        # If user selected checkbox, add to favorites
+        # Display "Add to Favorites" checkbox only after matching is complete
+        add_to_favorites_checkbox = st.checkbox("Add this combination to favorites")
+
+        # If "Add to Favorites" is checked, add the combination and images to favorites
         if add_to_favorites_checkbox and is_match:
-            favorite_combo = f"{color1_name} and {color2_name}"
-            st.session_state["favorites"].append(favorite_combo)
+            st.session_state["favorites"].append({
+                "colors": f"{color1_name} and {color2_name}",
+                "img1": img1,
+                "img2": img2
+            })
             st.success("Outfit combo added to favorites!")
 
 # Accessory upload section in an expandable container
@@ -128,11 +129,13 @@ with st.expander("Upload Accessories (e.g., shoes, belts)"):
             acc_match_score = (match_clothing(acc_color_name, color1_name) + match_clothing(acc_color_name, color2_name)) // 2
             st.write(f"Accessory Compatibility: {acc_match_score}%")
 
-# Favorite outfits dropdown
+# Favorite outfits dropdown with stored images
 with st.expander("Favorite Outfit Combinations"):
     if st.session_state["favorites"]:
         st.write("Your favorite outfit combinations:")
         for favorite in st.session_state["favorites"]:
-            st.write(f"• {favorite}")
+            st.write(f"• {favorite['colors']}")
+            st.image(favorite["img1"], caption="Clothing Item 1")
+            st.image(favorite["img2"], caption="Clothing Item 2")
     else:
         st.write("No favorite outfits saved yet.")
