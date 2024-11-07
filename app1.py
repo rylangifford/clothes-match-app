@@ -25,7 +25,7 @@ def get_dominant_color(image, k=1):
     dominant_color = kmeans.cluster_centers_[0]
     return dominant_color
 
-# Map RGB color to common color names (simplified)
+# Map RGB color to common color names
 def color_name(rgb_color):
     r, g, b = rgb_color
     if r > 150 and g < 100 and b < 100:
@@ -45,7 +45,7 @@ def color_name(rgb_color):
     else:
         return "unknown"
 
-# Define matching rules and compatibility score
+# Define matching rules and compatibility scores
 matching_rules = {
     ("blue", "brown"): 85,
     ("blue", "gray"): 80,
@@ -57,7 +57,7 @@ matching_rules = {
     ("blue", "white"): 85,
 }
 
-def match_clothing(color1, color2):
+def calculate_compatibility_score(color1, color2):
     return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1), 0)
 
 # Initialize session state for favorites
@@ -90,8 +90,8 @@ if img1_file and img2_file:
         
         st.write(f"Detected Colors for Clothing: {color1_name} and {color2_name}")
         
-        # Get compatibility score and display it
-        match_score = match_clothing(color1_name, color2_name)
+        # Calculate compatibility score and display it
+        match_score = calculate_compatibility_score(color1_name, color2_name)
         if match_score > 0:
             st.write(f"### Compatibility: {match_score}%")
             is_match = True
@@ -126,7 +126,7 @@ with st.expander("Upload Accessories (e.g., shoes, belts)"):
             st.write(f"Detected Color for Accessory: {acc_color_name}")
             
             # Calculate and display match percentage with main outfit
-            acc_match_score = (match_clothing(acc_color_name, color1_name) + match_clothing(acc_color_name, color2_name)) // 2
+            acc_match_score = (calculate_compatibility_score(acc_color_name, color1_name) + calculate_compatibility_score(acc_color_name, color2_name)) // 2
             st.write(f"Accessory Compatibility: {acc_match_score}%")
 
 # Favorite outfits dropdown with stored images
