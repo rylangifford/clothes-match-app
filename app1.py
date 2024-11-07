@@ -133,9 +133,15 @@ with st.expander("Upload Accessories (e.g., shoes, belts)"):
 with st.expander("Favorite Outfit Combinations"):
     if st.session_state["favorites"]:
         st.write("Your favorite outfit combinations:")
-        for favorite in st.session_state["favorites"]:
+        
+        for idx, favorite in enumerate(st.session_state["favorites"]):
             st.write(f"• {favorite['colors']}")
             st.image(favorite["img1"], caption="Clothing Item 1")
             st.image(favorite["img2"], caption="Clothing Item 2")
+            
+            # "Delete Outfit Image" button
+            if st.button(f"Delete Outfit Image {idx + 1}"):
+                st.session_state["favorites"].pop(idx)
+                st.experimental_rerun()  # Refresh the app after deletion
     else:
         st.write("No favorite outfits saved yet.")
