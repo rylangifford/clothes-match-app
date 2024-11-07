@@ -45,20 +45,20 @@ def color_name(rgb_color):
     else:
         return "unknown"
 
-# Define matching rules
+# Define matching rules and compatibility score
 matching_rules = {
-    ("blue", "brown"): True,
-    ("blue", "gray"): True,
-    ("black", "white"): True,
-    ("white", "black"): True,
-    ("red", "black"): True,
-    ("gray", "black"): True,
-    ("green", "khaki"): True,
-    ("blue", "white"): True,
+    ("blue", "brown"): 85,
+    ("blue", "gray"): 80,
+    ("black", "white"): 90,
+    ("white", "black"): 90,
+    ("red", "black"): 75,
+    ("gray", "black"): 70,
+    ("green", "khaki"): 80,
+    ("blue", "white"): 85,
 }
 
 def match_clothing(color1, color2):
-    return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1))
+    return matching_rules.get((color1, color2)) or matching_rules.get((color2, color1), 0)
 
 # Initialize session state for favorites
 if "favorites" not in st.session_state:
@@ -72,59 +72,61 @@ st.write("Upload images of clothing and accessories to see if they match!")
 img1_file = st.file_uploader("Choose first clothing image (e.g., shirt)", type=["jpg", "jpeg", "png"])
 img2_file = st.file_uploader("Choose second clothing image (e.g., pants)", type=["jpg", "jpeg", "png"])
 
+# Checkbox for adding to favorites, only shown if images are uploaded
+add_to_favorites_checkbox = None
+if img1_file and img2_file:
+    add_to_favorites_checkbox = st.checkbox("Add this combination to favorites")
+
+# Match button to trigger compatibility calculation
+if img1_file and img2_file:
+    if st.button("Match"):
+        # Process clothing images
+        img1 = Image.open(img1_file)
+        img2 = Image.open(img2_file)
+        
+        img1_cv = cv2.cvtColor(np.array(img1), cv2.COLOR_RGB2BGR)
+        img2_cv = cv2.cvtColor(np.array(img2), cv2.COLOR_RGB2BGR)
+        
+        color1_rgb = get_dominant_color(img1_cv)
+        color2_rgb = get_dominant_color(img2_cv)
+        
+        color1_name = color_name(color1_rgb)
+        color2_name = color_name(color2_rgb)
+        
+        st.write(f"Detected Colors for Clothing: {color1_name} and {color2_name}")
+        
+        # Get compatibility score and display it
+        match_score = match_clothing(color1_name, color2_name)
+        if match_score > 0:
+            st.write(f"### Compatibility: {match_score}%")
+            is_match = True
+        else:
+            st.write("### Compatibility: 0% (No match)")
+            is_match = False
+
+        # If user selected checkbox, add to favorites
+        if add_to_favorites_checkbox and is_match:
+            favorite_combo = f"{color1_name} and {color2_name}"
+            st.session_state["favorites"].append(favorite_combo)
+            st.success("Outfit combo added to favorites!")
+
 # Accessory upload section in an expandable container
 with st.expander("Upload Accessories (e.g., shoes, belts)"):
     accessory_files = st.file_uploader("Choose accessory images", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
-if img1_file and img2_file:
-    # Process clothing images
-    img1 = Image.open(img1_file)
-    img2 = Image.open(img2_file)
-    
-    img1_cv = cv2.cvtColor(np.array(img1), cv2.COLOR_RGB2BGR)
-    img2_cv = cv2.cvtColor(np.array(img2), cv2.COLOR_RGB2BGR)
-    
-    color1_rgb = get_dominant_color(img1_cv)
-    color2_rgb = get_dominant_color(img2_cv)
-    
-    color1_name = color_name(color1_rgb)
-    color2_name = color_name(color2_rgb)
-    
-    st.write(f"Detected Colors for Clothing: {color1_name} and {color2_name}")
-    
-    # Check clothing match
-    if match_clothing(color1_name, color2_name):
-        st.write("### 👍 The clothes match!")
-        is_match = True
-    else:
-        st.write("### 👎 The clothes don't match.")
-        is_match = False
-
-    # Process accessory images if any
-    if accessory_files:
-        accessory_colors = []
-        
+    if accessory_files and img1_file and img2_file:
         for acc_file in accessory_files:
             acc_image = Image.open(acc_file)
             acc_image_cv = cv2.cvtColor(np.array(acc_image), cv2.COLOR_RGB2BGR)
             
             acc_color_rgb = get_dominant_color(acc_image_cv)
             acc_color_name = color_name(acc_color_rgb)
-            accessory_colors.append(acc_color_name)
             
             st.write(f"Detected Color for Accessory: {acc_color_name}")
             
-            if match_clothing(acc_color_name, color1_name) and match_clothing(acc_color_name, color2_name):
-                st.write("### 👍 Accessory matches both clothing items!")
-            else:
-                st.write("### 👎 Accessory doesn't match both clothing items.")
-
-    # Add current combination to favorites if matched
-    if is_match:
-        if st.button("Add to Favorites"):
-            favorite_combo = f"{color1_name} and {color2_name} (with accessories: {', '.join(accessory_colors)})"
-            st.session_state["favorites"].append(favorite_combo)
-            st.success("Outfit combo added to favorites!")
+            # Calculate and display match percentage with main outfit
+            acc_match_score = (match_clothing(acc_color_name, color1_name) + match_clothing(acc_color_name, color2_name)) // 2
+            st.write(f"Accessory Compatibility: {acc_match_score}%")
 
 # Favorite outfits dropdown
 with st.expander("Favorite Outfit Combinations"):
